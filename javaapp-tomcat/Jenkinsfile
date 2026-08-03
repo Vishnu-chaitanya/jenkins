@@ -9,7 +9,7 @@ pipeline {
             }
         }
 
-        // Step 2: Unit Testing (Runs on ALL branches including Dev)
+        // Step 2: Unit Testing (Runs on ALL branches)
         stage('test') {
             steps {
                 sh '''
@@ -35,7 +35,7 @@ pipeline {
             }
         }
 
-        // Step 4: SonarQube Analysis (Skipped on Dev, runs on master/main)
+        // Step 4: SonarQube Code Analysis (Skipped on Dev, runs on master/main)
         stage('sonar_analysis') {
             when {
                 anyOf {
@@ -55,21 +55,24 @@ pipeline {
             }
         }
 
-        // Step 5: Deployment to Tomcat (Skipped on Dev, runs on master/main)
+        // Step 5: SCP & SSH Deployment to Tomcat (Skipped on Dev, runs on master/main)
         stage('deploy') {
-    when {
-        anyOf {
-            branch 'master'
-            branch 'main'
-        }
-    }
-    steps {
-        withCredentials([sshUserPrivateKey(credentialsId: 'tomcat-credentials', keyFileVariable: 'KEY', usernameVariable: 'USER')]) {
-            sh '''
-            cd javaapp-tomcat/target
-            scp -i "$KEY" -o StrictHostKeyChecking=no artisantek-app.war $USER@13.127.0.50:/home/ubuntu
-            ssh -i "$KEY" -o StrictHostKeyChecking=no $USER@13.127.0.50 'sudo mv /home/ubuntu/artisantek-app.war /opt/tomcat/webapps'
-            '''
+            when {
+                anyOf {
+                    branch 'master'
+                    branch 'main'
+                }
+            }
+            steps {
+                withCredentials([sshUserPrivateKey(credentialsId: 'tomcat-credentials', keyFileVariable: 'KEY', usernameVariable: 'USER')]) {
+                    sh '''
+                    cd javaapp-tomcat/target
+                    ls
+                    scp -i "$KEY" -o StrictHostKeyChecking=no artisantek-app.war $USER@13.127.0.50:/home/ubuntu
+                    ssh -i "$KEY" -o StrictHostKeyChecking=no $USER@13.127.0.50 'sudo mv /home/ubuntu/artisantek-app.war /opt/tomcat/webapps'
+                    '''
+                }
+            }
         }
     }
 }

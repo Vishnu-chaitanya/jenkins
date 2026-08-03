@@ -1,0 +1,81 @@
+pipeline {
+    agent { label 'agent' }
+
+    stages {
+        // Step 1: Checkout repository (Runs on ALL branches)
+        stage('checkout') {
+            steps {
+                git changelog: false, poll: false, url: 'https://github.com/Vishnu-chaitanya/jenkins.git'
+            }
+        }
+
+        // Step 2: Unit Testing (Runs on ALL branches, including dev)
+        stage('test') {
+            steps {
+                dir('javaapp-tomcat') {
+                    sh '''
+                    mvn clean test
+                    '''
+                }
+            }
+        }
+
+        // Step 3: Package .WAR File (Skipped on dev, runs on master/main)
+        stage('build') {
+            when {
+                anyOf {
+                    branch 'master'
+                    branch 'main'
+                }
+            }
+            steps {
+                dir('javaapp-tomcat') {
+                    sh '''
+                    mvn clean package -DskipTests
+                    '''
+                }
+            }
+        }
+
+        // Step 4: SonarQube Code Analysis (Skipped on dev, runs on master/main)
+        stage('sonar_analysis') {
+            when {
+                anyOf {
+                    branch 'master'
+                    branch 'main'
+                }
+            }
+            steps {
+                dir('javaapp-tomcat') {
+                    withSonarQubeEnv('sonarqube') {
+                        sh '''
+                        mvn clean verify sonar:sonar \
+                        -Dsonar.projectKey='jenkins-new-test' \
+                        -Dsonar.projectName='jenkins-new-test'
+                        '''
+                    }
+                }
+            }
+        }
+
+        // Step 5: SCP & SSH Deployment to Tomcat (Skipped on dev, runs on master/main)
+        stage('deploy') {
+            when {
+                anyOf {
+                    branch 'master'
+                    branch 'main'
+                }
+            }
+            steps {
+                dir('javaapp-tomcat') {
+                    sh '''
+                    cd target
+                    ls
+                    scp -i "$KEY" -o StrictHostKeyChecking=no artisantek-app.war $USER@13.127.0.50:/home/ubuntu
+                    ssh -i "$KEY" -o StrictHostKeyChecking=no $USER@13.127.0.50 'sudo mv /home/ubuntu/artisantek-app.war /opt/tomcat/webapps'
+                    '''
+                }
+            }
+        }
+    }
+}

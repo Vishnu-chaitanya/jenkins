@@ -68,8 +68,8 @@ pipeline {
                     sh '''
                     cd javaapp-tomcat/target
                     ls
-                    scp -i "$KEY" -o StrictHostKeyChecking=no artisantek-app.war $USER@13.206.238.144:/home/ubuntu
-                    ssh -i "$KEY" -o StrictHostKeyChecking=no $USER@13.206.238.144 'sudo mv /home/ubuntu/artisantek-app.war /opt/tomcat/webapps'
+                    scp -i "$KEY" -o StrictHostKeyChecking=no artisantek-app.war $USER@3.110.87.180:/home/ubuntu
+                    ssh -i "$KEY" -o StrictHostKeyChecking=no $USER@3.110.87.180 'sudo mv /home/ubuntu/artisantek-app.war /opt/tomcat/webapps'
                     '''
                 }
             }
